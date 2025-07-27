@@ -42,11 +42,11 @@ ENV npm_config_yes=true
 RUN npm install -g webpack webpack-cli
 
 # Instalar dependências de cada workspace individualmente
-RUN cd apps/root && npm install
-RUN cd apps/header-react && npm install  
-RUN cd apps/home-react && npm install
-RUN cd apps/dashboard-react && npm install
-RUN cd apps/footer-angular && npm install
+RUN cd apps/root && npm install --include=dev
+RUN cd apps/header-react && npm install --include=dev
+RUN cd apps/home-react && npm install --include=dev
+RUN cd apps/dashboard-react && npm install --include=dev
+RUN cd apps/footer-angular && npm install --include=dev
 
 # Fazer build de cada microfrontend
 RUN cd apps/root && npm run build
