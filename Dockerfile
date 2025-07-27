@@ -35,6 +35,9 @@ COPY . .
 # Definir NODE_ENV para produção
 ENV NODE_ENV=production
 
+# Definir variável para instalação automática do webpack-cli
+ENV npm_config_yes=true
+
 # Instalar webpack e webpack-cli globalmente para evitar problemas de instalação interativa
 RUN npm install -g webpack webpack-cli
 
@@ -56,6 +59,9 @@ RUN cd apps/footer-angular && npm run build
 # Stage 3: Produção
 # ================================
 FROM base AS production
+
+# Definir variável para instalação automática do webpack-cli
+ENV npm_config_yes=true
 
 # Instalar webpack e webpack-cli globalmente para produção
 RUN npm install -g webpack webpack-cli
