@@ -1,6 +1,6 @@
 # ================================
-# Dockerfile Unificado - Next.js
-# Suporta desenvolvimento e produção
+# Dockerfile para Microfrontend com Module Federation
+# Otimizado para Railway Cloud
 # ================================
 
 # Base image
@@ -8,16 +8,18 @@ FROM node:22-alpine AS base
 WORKDIR /app
 
 # Instalar dependências do sistema (Alpine)
-RUN apk add --no-cache libc6-compat
-
-# Copiar arquivos de dependências
-COPY package*.json ./
+RUN apk add --no-cache libc6-compat curl
 
 # ================================
 # Stage 1: Instalar dependências
 # ================================
 FROM base AS deps
-RUN npm ci
+
+# Copiar arquivos de dependências do root
+COPY package*.json ./
+
+# Instalar dependências do workspace root
+RUN npm ci && npm cache clean --force
 
 # ================================
 # Stage 2: Build da aplicação
@@ -30,43 +32,66 @@ COPY --from=deps /app/node_modules ./node_modules
 # Copiar código fonte
 COPY . .
 
-# Fazer build da aplicação
-RUN npm run build
+# Definir NODE_ENV para produção
+ENV NODE_ENV=production
+
+# Instalar dependências de cada workspace individualmente
+RUN cd apps/root && npm install
+RUN cd apps/header-react && npm install  
+RUN cd apps/home-react && npm install
+RUN cd apps/dashboard-react && npm install
+RUN cd apps/footer-angular && npm install
+
+# Fazer build de cada microfrontend
+RUN cd apps/root && npm run build
+RUN cd apps/header-react && npm run build
+RUN cd apps/home-react && npm run build
+RUN cd apps/dashboard-react && npm run build
+RUN cd apps/footer-angular && npm run build
 
 # ================================
-# Stage 3: Desenvolvimento
-# ================================
-FROM base AS development
-
-# Copiar dependências (incluindo devDependencies)
-COPY --from=deps /app/node_modules ./node_modules
-
-# Copiar código fonte
-COPY . .
-
-# Expor porta
-EXPOSE 3000
-
-# Comando para desenvolvimento
-CMD ["npm", "run", "dev"]
-
-# ================================
-# Stage 4: Produção (padrão)
+# Stage 3: Produção
 # ================================
 FROM base AS production
+
+# Criar usuário não-root para segurança
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 appuser
 
 # Copiar dependências de produção
 COPY --from=deps /app/node_modules ./node_modules
 
-# Copiar build da aplicação
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
+# Copiar builds da aplicação
+COPY --from=builder --chown=appuser:nodejs /app/apps/root/dist ./apps/root/dist
+COPY --from=builder --chown=appuser:nodejs /app/apps/header-react/dist ./apps/header-react/dist
+COPY --from=builder --chown=appuser:nodejs /app/apps/home-react/dist ./apps/home-react/dist
+COPY --from=builder --chown=appuser:nodejs /app/apps/dashboard-react/dist ./apps/dashboard-react/dist
+COPY --from=builder --chown=appuser:nodejs /app/apps/footer-angular/dist ./apps/footer-angular/dist
+
+# Copiar node_modules de cada workspace
+COPY --from=builder --chown=appuser:nodejs /app/apps/root/node_modules ./apps/root/node_modules
+COPY --from=builder --chown=appuser:nodejs /app/apps/header-react/node_modules ./apps/header-react/node_modules
+COPY --from=builder --chown=appuser:nodejs /app/apps/home-react/node_modules ./apps/home-react/node_modules
+COPY --from=builder --chown=appuser:nodejs /app/apps/dashboard-react/node_modules ./apps/dashboard-react/node_modules
+COPY --from=builder --chown=appuser:nodejs /app/apps/footer-angular/node_modules ./apps/footer-angular/node_modules
 
 # Copiar arquivos de configuração
-COPY package*.json ./
+COPY --chown=appuser:nodejs package*.json ./
+COPY --chown=appuser:nodejs apps/ ./apps/
 
-# Expor porta
-EXPOSE 3000
+# Mudar para usuário não-root
+USER appuser
 
-# Comando para produção
-CMD ["npm", "run", "start"]
+# Definir variáveis de ambiente
+ENV NODE_ENV=production
+ENV PORT=3000
+
+# Expor porta (Railway usa a variável PORT)
+EXPOSE $PORT
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD curl -f http://localhost:$PORT/ || exit 1
+
+# Comando para produção - inicia todos os microfrontends
+CMD ["npm", "run", "start:all"]
