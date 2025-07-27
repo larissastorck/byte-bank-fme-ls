@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "start": "cross-env PORT=3000 npx webpack serve --config webpack.config.js --color",
-    "build": "npx webpack --config webpack.prod.js --mode production",
-    "build:dev": "npx webpack --config webpack.config.js",
+    "start": "cross-env PORT=3000 ./node_modules/.bin/webpack serve --config webpack.config.js --color",
+    "build": "./node_modules/.bin/webpack --config webpack.prod.js --mode production",
+    "build:dev": "./node_modules/.bin/webpack --config webpack.config.js",
     "test": "jest"
   },
   "dependencies": {
