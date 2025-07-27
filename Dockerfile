@@ -35,6 +35,9 @@ COPY . .
 # Definir NODE_ENV para produção
 ENV NODE_ENV=production
 
+# Instalar webpack-cli globalmente para evitar problemas de instalação interativa
+RUN npm install -g webpack-cli
+
 # Instalar dependências de cada workspace individualmente
 RUN cd apps/root && npm install
 RUN cd apps/header-react && npm install  
@@ -53,6 +56,9 @@ RUN cd apps/footer-angular && npm run build
 # Stage 3: Produção
 # ================================
 FROM base AS production
+
+# Instalar webpack-cli globalmente para produção
+RUN npm install -g webpack-cli
 
 # Criar usuário não-root para segurança
 RUN addgroup --system --gid 1001 nodejs

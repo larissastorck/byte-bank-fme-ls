@@ -73,4 +73,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD curl -f http://localhost:$PORT/ || exit 1
 
 # Comando para produção
-CMD ["npx", "--yes", "webpack", "serve", "--config", "webpack.config.js", "--host", "0.0.0.0", "--port", "3001", "--mode", "production"]
+CMD ["webpack", "serve", "--config", "webpack.config.js", "--host", "0.0.0.0", "--port", "3001", "--mode", "production"]
